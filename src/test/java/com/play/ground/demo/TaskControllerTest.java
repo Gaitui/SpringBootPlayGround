@@ -4,6 +4,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -92,5 +93,60 @@ public class TaskControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
         
         verify(taskService).getAll();
+    }
+
+    @Test
+    public void testCreateTaskTitleBlank() throws Exception {
+        TaskRequest invalidRequest = new TaskRequest("", "This is a test task.");
+        mockMvc.perform(post("/tasks")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Validation failed for one or more fields."))
+                .andExpect(jsonPath("$.errors.title").value("Title is required"));
+        
+        verifyNoInteractions(taskService);
+    }
+
+    @Test
+    public void testCreateTaskTitleMissing() throws Exception {
+        String invalidJson = "{\"description\": \"This is a test task.\"}";
+        mockMvc.perform(post("/tasks")
+                .contentType("application/json")
+                .content(invalidJson))
+                .andExpect(status().isBadRequest());
+        
+        verifyNoInteractions(taskService);
+    }
+
+    @Test
+    public void testCreateTaskTitleTooLong() throws Exception {
+        String longTitle = "A".repeat(101);
+        TaskRequest invalidRequest = new TaskRequest(longTitle, "This is a test task.");
+        mockMvc.perform(post("/tasks")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest());
+        
+        verifyNoInteractions(taskService);
+    }
+
+    @Test
+    public void testCreateTaskTitleHundredChars() throws Exception {
+        String longTitle = "A".repeat(100);
+        TaskRequest validRequest = new TaskRequest(longTitle, "This is a test task.");
+        TaskResponse taskResponse = new TaskResponse(1L, longTitle, "This is a test task.", false);
+
+        when(taskService.create(any())).thenReturn(taskResponse);
+
+        mockMvc.perform(post("/tasks")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(content().json(objectMapper.writeValueAsString(taskResponse)));
+
+        verify(taskService).create(any());
     }
 }

@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.http.HttpStatus;
 
 import com.play.ground.demo.service.TaskService;
+
+import jakarta.validation.Valid;
+
 import com.play.ground.demo.dto.TaskRequest;
 import com.play.ground.demo.dto.TaskResponse;
 
@@ -23,7 +26,7 @@ public class TaskController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TaskResponse createTask(@RequestBody TaskRequest taskRequest) {
+    public TaskResponse createTask(@Valid @RequestBody TaskRequest taskRequest) {
         return taskService.create(taskRequest);
     }
 
