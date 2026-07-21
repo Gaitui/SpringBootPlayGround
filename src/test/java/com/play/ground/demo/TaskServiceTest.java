@@ -65,4 +65,11 @@ public class TaskServiceTest {
             .isInstanceOf(TaskNotFoundException.class)
             .hasMessageContaining("Task not found with ID: 999");
     }
+
+    @Test
+    public void testIsTaskExists() {
+        TaskResponse createdTask = taskService.create(new TaskRequest("Task 1", "Description 1"));
+        assert taskService.isExists(createdTask.id());
+        assert !taskService.isExists(999L);
+    }
 }
