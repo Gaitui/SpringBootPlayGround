@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,8 +24,11 @@ import com.play.ground.demo.dto.TaskRequest;
 import com.play.ground.demo.dto.TaskResponse;
 import com.play.ground.demo.service.TaskService;
 import com.play.ground.demo.controller.TaskController;
+import com.play.ground.demo.exception.TaskNotFoundException;
+import com.play.ground.demo.common.GlobalExceptionHandler;
 
 @WebMvcTest(TaskController.class)
+@Import(GlobalExceptionHandler.class)
 public class TaskControllerTest {
     
     @Autowired
@@ -148,5 +152,61 @@ public class TaskControllerTest {
                 .andExpect(content().json(objectMapper.writeValueAsString(taskResponse)));
 
         verify(taskService).create(any());
+    }
+
+    @Test
+    public void testGetTaskById() throws Exception {
+        TaskResponse taskResponse = new TaskResponse(1L, "Task 1", "Description 1", false);
+        when(taskService.getById(1L)).thenReturn(taskResponse);
+
+        mockMvc.perform(get("/tasks/1"))
+                .andExpect(status().isOk())
+                .andExpect(content().json(objectMapper.writeValueAsString(taskResponse)));
+
+        verify(taskService).getById(1L);
+    }
+
+    @Test
+    public void testGetTaskByIdNotFound() throws Exception {
+        when(taskService.getById(999L))
+        .thenThrow(new TaskNotFoundException(999L));
+
+        mockMvc.perform(get("/tasks/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.code").value("TASK_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Task not found with ID: 999"))
+                .andExpect(jsonPath("$.path").value("/tasks/999"));
+
+        verify(taskService).getById(999L);
+    }
+
+    @Test
+    public void testGetTaskByIdInvalidId() throws Exception {
+        mockMvc.perform(get("/tasks/abc"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(taskService);
+    }
+
+    @Test
+    public void testTaskIdExists() throws Exception {
+        when(taskService.isExists(1L)).thenReturn(true);
+
+        mockMvc.perform(get("/tasks/1/exists"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("true"));
+
+        verify(taskService).isExists(1L);
+    }
+
+    @Test
+    public void testTaskIdNotExists() throws Exception {
+        when(taskService.isExists(999L)).thenReturn(false);
+
+        mockMvc.perform(get("/tasks/999/exists"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("false"));
+
+        verify(taskService).isExists(999L);
     }
 }

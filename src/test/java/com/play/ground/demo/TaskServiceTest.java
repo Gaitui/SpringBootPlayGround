@@ -1,5 +1,7 @@
 package com.play.ground.demo;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -8,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import com.play.ground.demo.service.TaskService;
 import com.play.ground.demo.dto.TaskRequest;
 import com.play.ground.demo.dto.TaskResponse;
+import com.play.ground.demo.exception.TaskNotFoundException;
 
 public class TaskServiceTest {
     private TaskService taskService;
@@ -45,4 +48,21 @@ public class TaskServiceTest {
         assert taskService.count() == 2;
     }
 
+    @Test
+    public void testGetTaskById() {
+        TaskResponse createdTask = taskService.create(new TaskRequest("Task 1", "Description 1"));
+        TaskResponse fetchedTask = taskService.getById(createdTask.id());
+        assert fetchedTask.id().equals(createdTask.id());
+        assert fetchedTask.title().equals("Task 1");
+        assert fetchedTask.description().equals("Description 1");  
+        assert !fetchedTask.completed();
+    }
+
+    @Test
+    public void testGetTaskByIdNotFound() {
+        assertThatThrownBy(
+            () -> taskService.getById(999L))
+            .isInstanceOf(TaskNotFoundException.class)
+            .hasMessageContaining("Task not found with ID: 999");
+    }
 }

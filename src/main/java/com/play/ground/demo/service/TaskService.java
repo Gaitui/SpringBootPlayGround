@@ -10,6 +10,8 @@ import com.play.ground.demo.dto.TaskResponse;
 import com.play.ground.demo.model.TaskModel;
 import com.play.ground.demo.dto.TaskRequest;
 
+import com.play.ground.demo.exception.TaskNotFoundException;
+
 @Service
 public class TaskService {
     private final List<TaskModel> tasks = new ArrayList<>();
@@ -35,6 +37,19 @@ public class TaskService {
 
     public int count() {
         return tasks.size();
+    }
+
+    public TaskResponse getById(Long id) {
+        TaskModel task =  tasks.stream()
+                .filter(item -> item.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new TaskNotFoundException(id));
+        return toResponse(task);
+    }
+
+    public boolean isExists(Long id) {
+        return tasks.stream()
+                .anyMatch(item -> item.getId().equals(id));
     }
 
     private TaskResponse toResponse(TaskModel task) {

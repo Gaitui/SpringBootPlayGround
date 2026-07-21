@@ -12,6 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import com.play.ground.demo.dto.ValidationErrorResponse;
+import com.play.ground.demo.exception.TaskNotFoundException;
+import com.play.ground.demo.dto.ApiErrorResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -40,6 +44,21 @@ public class GlobalExceptionHandler {
             "JSON_FORMAT_ERROR",
             "Invalid JSON format.",
             Map.of()
+        );
+    }
+
+    @ExceptionHandler(TaskNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiErrorResponse handleTaskNotFoundException(
+        TaskNotFoundException ex,
+        HttpServletRequest request
+    ) {
+        return new ApiErrorResponse(
+            LocalDateTime.now(),
+            HttpStatus.NOT_FOUND.value(),
+            "TASK_NOT_FOUND",
+            ex.getMessage(),
+            request.getRequestURI()
         );
     }
 }

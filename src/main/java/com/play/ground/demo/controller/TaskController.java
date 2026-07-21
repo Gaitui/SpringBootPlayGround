@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import com.play.ground.demo.service.TaskService;
 
@@ -38,6 +39,16 @@ public class TaskController {
     @GetMapping("/count")
     public int countTasks() {
         return taskService.count();
+    }
+
+    @GetMapping("/{id}")
+    public TaskResponse getTaskById(@PathVariable Long id) {
+        return taskService.getById(id);
+    }
+
+    @GetMapping("/{id}/exists")
+    public boolean isTaskExists(@PathVariable Long id) {
+        return taskService.isExists(id);
     }
 
 }
