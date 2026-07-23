@@ -3,6 +3,8 @@ package com.play.ground.demo;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -11,6 +13,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +31,7 @@ import com.play.ground.demo.service.TaskService;
 import com.play.ground.demo.controller.TaskController;
 import com.play.ground.demo.exception.TaskNotFoundException;
 import com.play.ground.demo.common.GlobalExceptionHandler;
+import com.play.ground.demo.dto.UpdateTaskRequest;
 
 @WebMvcTest(TaskController.class)
 @Import(GlobalExceptionHandler.class)
@@ -209,4 +215,78 @@ public class TaskControllerTest {
 
         verify(taskService).isExists(999L);
     }
+
+    @Test
+    public void testUpdateTask() throws Exception {
+        Long taskId = 1L;
+        UpdateTaskRequest updateTaskRequest = new UpdateTaskRequest("Updated Task", "Updated Description");
+        TaskResponse updatedTaskResponse = new TaskResponse(taskId, "Updated Task", "Updated Description", false);
+
+        when(taskService.update(eq(taskId), any())).thenReturn(updatedTaskResponse);
+
+        mockMvc.perform(put("/tasks/{id}", taskId)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(updateTaskRequest)))
+                .andExpect(status().isOk())
+                .andExpect(content().json(objectMapper.writeValueAsString(updatedTaskResponse)));
+
+        verify(taskService).update(eq(taskId), any());
+    }
+
+    @Test
+    public void testUpdateTitleNotFound() throws Exception {
+        Long taskId = 1L;
+        UpdateTaskRequest updateTaskRequest = new UpdateTaskRequest("", "Updated Description");
+
+
+        mockMvc.perform(put("/tasks/{id}", taskId)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(updateTaskRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.errors.title").value("Title is required"));
+
+        verifyNoInteractions(taskService);
+    }
+
+
+    @Test
+    public void testCompleteTask() throws Exception {
+        Long taskId = 1L;
+        TaskResponse completedTaskResponse = new TaskResponse(taskId, "Task 1", "Description 1", true);
+
+        when(taskService.complete(taskId)).thenReturn(completedTaskResponse);
+
+        mockMvc.perform(patch("/tasks/{id}/complete", taskId))
+                .andExpect(status().isOk())
+                .andExpect(content().json(objectMapper.writeValueAsString(completedTaskResponse)));
+
+        verify(taskService).complete(taskId);
+    }
+
+    @Test
+    public void testDeleteTask() throws Exception {
+        Long taskId = 1L;
+
+        mockMvc.perform(delete("/tasks/{id}", taskId))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+
+        verify(taskService).delete(taskId);
+    }
+
+    @Test
+    public void testDeleteTaskNotFound() throws Exception {
+        Long taskId = 999L;
+        doThrow(new TaskNotFoundException(taskId)).when(taskService).delete(taskId);
+
+        mockMvc.perform(delete("/tasks/{id}", taskId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.code").value("TASK_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Task not found with ID: 999"))
+                .andExpect(jsonPath("$.path").value("/tasks/999"));
+    }
+
 }

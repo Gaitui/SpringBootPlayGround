@@ -11,6 +11,7 @@ import com.play.ground.demo.service.TaskService;
 import com.play.ground.demo.dto.TaskRequest;
 import com.play.ground.demo.dto.TaskResponse;
 import com.play.ground.demo.exception.TaskNotFoundException;
+import com.play.ground.demo.dto.UpdateTaskRequest;
 
 public class TaskServiceTest {
     private TaskService taskService;
@@ -71,5 +72,45 @@ public class TaskServiceTest {
         TaskResponse createdTask = taskService.create(new TaskRequest("Task 1", "Description 1"));
         assert taskService.isExists(createdTask.id());
         assert !taskService.isExists(999L);
+    }
+
+    @Test
+    public void testUpdateTask() {
+        TaskResponse createdTask = taskService.create(new TaskRequest("Task 1", "Description 1"));
+        TaskResponse updatedTask = taskService.update(createdTask.id(), new UpdateTaskRequest("Updated Task", "Updated Description"));
+        assert updatedTask.id().equals(createdTask.id());
+        assert updatedTask.title().equals("Updated Task");
+        assert updatedTask.description().equals("Updated Description");
+        assert !updatedTask.completed();
+    }
+
+    @Test
+    public void testUpdateTaskNotFound() {
+        assertThatThrownBy(
+            () -> taskService.update(999L, new UpdateTaskRequest("Updated Task", "Updated Description")))
+            .isInstanceOf(TaskNotFoundException.class)
+            .hasMessageContaining("Task not found with ID: 999");
+    }
+
+    @Test
+    public void testCompleteTask() {
+        TaskResponse createdTask = taskService.create(new TaskRequest("Task 1", "Description 1"));
+        TaskResponse completedTask = taskService.complete(createdTask.id());
+        assert completedTask.id().equals(createdTask.id());
+        assert completedTask.completed();
+    }
+
+    @Test
+    public void testDeleteTask() {
+        TaskResponse createdTask = taskService.create(new TaskRequest("Task 1", "Description 1"));
+        taskService.delete(createdTask.id());
+        assert !taskService.isExists(createdTask.id());
+    }
+
+    @Test void testDeleteTaskNotFound() {
+        assertThatThrownBy(
+            () -> taskService.delete(999L))
+            .isInstanceOf(TaskNotFoundException.class)
+            .hasMessageContaining("Task not found with ID: 999");
     }
 }

@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Service;
 
 import com.play.ground.demo.dto.TaskResponse;
+import com.play.ground.demo.dto.UpdateTaskRequest;
 import com.play.ground.demo.model.TaskModel;
 import com.play.ground.demo.dto.TaskRequest;
 
@@ -40,16 +41,40 @@ public class TaskService {
     }
 
     public TaskResponse getById(Long id) {
-        TaskModel task =  tasks.stream()
-                .filter(item -> item.getId().equals(id))
-                .findFirst()
-                .orElseThrow(() -> new TaskNotFoundException(id));
+        TaskModel task = findTaskById(id);
         return toResponse(task);
     }
 
     public boolean isExists(Long id) {
         return tasks.stream()
                 .anyMatch(item -> item.getId().equals(id));
+    }
+
+    public TaskResponse update(Long id, UpdateTaskRequest request) {
+        TaskModel task = findTaskById(id);
+
+        task.setName(request.title());
+        task.setDescription(request.description());
+
+        return toResponse(task);
+    }
+
+    public TaskResponse complete(Long id) {
+        TaskModel task = findTaskById(id);
+        task.setCompleted(true);
+        return toResponse(task);
+    }
+
+    public void delete(Long id) {
+        TaskModel task = findTaskById(id);
+        tasks.remove(task);
+    }
+
+    private TaskModel findTaskById(Long id) {
+        return tasks.stream()
+                .filter(item -> item.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new TaskNotFoundException(id));
     }
 
     private TaskResponse toResponse(TaskModel task) {
