@@ -1,5 +1,7 @@
 package com.play.ground.demo.controller;
 
+import java.util.List;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -70,4 +72,10 @@ public class TaskController {
     public void deleteTask(@PathVariable Long id) {
         taskService.delete(id);
     }
+
+    @GetMapping("/incomplete")
+    public List<TaskResponse> getIncompleteTasks() {
+        return taskService.getIncompleteTasks();
+    }
+
 }

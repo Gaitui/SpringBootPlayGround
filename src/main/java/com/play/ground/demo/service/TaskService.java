@@ -1,8 +1,6 @@
 package com.play.ground.demo.service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.stereotype.Service;
 
@@ -10,20 +8,40 @@ import com.play.ground.demo.dto.TaskResponse;
 import com.play.ground.demo.dto.UpdateTaskRequest;
 import com.play.ground.demo.model.TaskModel;
 import com.play.ground.demo.dto.TaskRequest;
+import com.play.ground.demo.respository.TaskRepository;
 
 import com.play.ground.demo.exception.TaskNotFoundException;
 
 @Service
 public class TaskService {
-    private final List<TaskModel> tasks = new ArrayList<>();
-    private final AtomicLong idGenerator = new AtomicLong(0);
+    // private final List<TaskModel> tasks = new ArrayList<>();
+    // private final AtomicLong idGenerator = new AtomicLong(0);
+
+    // public TaskResponse create(TaskRequest request) {
+    //     TaskModel task = new TaskModel(idGenerator.incrementAndGet(), request.title(), request.description(), false);
+
+    //     tasks.add(task);
+    //     return toResponse(task);
+    // }
+
+    private final TaskRepository tasks;
+
+    public TaskService(TaskRepository taskRepository) {
+        this.tasks = taskRepository;
+    }
 
     public TaskResponse create(TaskRequest request) {
-        TaskModel task = new TaskModel(idGenerator.incrementAndGet(), request.title(), request.description(), false);
+        TaskModel task = new TaskModel(
+            request.title(),
+            request.description(),
+            false
+        );
 
-        tasks.add(task);
-        return toResponse(task);
+        TaskModel savedTask = tasks.save(task);
+        return toResponse(savedTask);
     }
+
+
 
     public List<TaskResponse> getAll() {
         // List<TaskResponse> responses = new ArrayList<>();
@@ -31,13 +49,13 @@ public class TaskService {
         //     responses.add(toResponse(task));
         // }
         // return responses;
-        return tasks.stream()
+        return tasks.findAll().stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     public int count() {
-        return tasks.size();
+        return tasks.findAll().size();
     }
 
     public TaskResponse getById(Long id) {
@@ -46,8 +64,9 @@ public class TaskService {
     }
 
     public boolean isExists(Long id) {
-        return tasks.stream()
-                .anyMatch(item -> item.getId().equals(id));
+        // return tasks.findAll().stream()
+        //         .anyMatch(item -> item.getId().equals(id));
+        return tasks.existsById(id);
     }
 
     public TaskResponse update(Long id, UpdateTaskRequest request) {
@@ -56,24 +75,31 @@ public class TaskService {
         task.setName(request.title());
         task.setDescription(request.description());
 
-        return toResponse(task);
+        TaskModel updatedTask = tasks.save(task);
+
+        return toResponse(updatedTask);
     }
 
     public TaskResponse complete(Long id) {
         TaskModel task = findTaskById(id);
         task.setCompleted(true);
-        return toResponse(task);
+        TaskModel completedTask = tasks.save(task);
+        return toResponse(completedTask);
     }
 
     public void delete(Long id) {
         TaskModel task = findTaskById(id);
-        tasks.remove(task);
+        tasks.delete(task);
+    }
+
+    public List<TaskResponse> getIncompleteTasks() {
+        return tasks.findByCompleted(false).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     private TaskModel findTaskById(Long id) {
-        return tasks.stream()
-                .filter(item -> item.getId().equals(id))
-                .findFirst()
+        return tasks.findById(id)
                 .orElseThrow(() -> new TaskNotFoundException(id));
     }
 
